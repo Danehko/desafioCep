@@ -12,6 +12,7 @@ public class Address implements Serializable {
 
     @PrimaryKey @NonNull
     private String cep;
+
     private String logradouro;
     private String bairro;
     private String cidade;
@@ -47,6 +48,6 @@ public class Address implements Serializable {
 
     @Override
     public String toString() {
-        return cep;
+        return cep.substring(0,5) + "-" + cep.substring(5);
     }
 }

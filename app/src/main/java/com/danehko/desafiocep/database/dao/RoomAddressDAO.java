@@ -21,6 +21,6 @@ public interface RoomAddressDAO {
     @Query("SELECT * FROM Address")
     List<Address> all();
 
-    @Query("SELECT count(*)!=0 FROM Address WHERE cep = :cepTest")
-    boolean containsPrimaryKey(String cepTest);
+    @Query("SELECT * FROM Address WHERE cep = :cepTest")
+    List<Address> getAddress(String cepTest);
 }

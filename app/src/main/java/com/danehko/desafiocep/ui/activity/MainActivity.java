@@ -17,10 +17,19 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.room.Room;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.danehko.desafiocep.R;
 import com.danehko.desafiocep.database.AddressDatabase;
 import com.danehko.desafiocep.database.dao.RoomAddressDAO;
 import com.danehko.desafiocep.model.Address;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.List;
 
@@ -33,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        RequestQueue queue = Volley.newRequestQueue(this);
+
         AddressDatabase database = Room.databaseBuilder(this, AddressDatabase.class, "desafioCep.db").allowMainThreadQueries().build();
         RoomAddressDAO dao = database.getRoomAlunoDAO();
         setTitle("Checagem de CEP");
@@ -44,18 +55,66 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String cep = campoCep.getText().toString();
-                Address local = new Address(cep, "teste", "bola", "cachorro", "taco");
+                if(cep.length()>7 && cep.length()<10){
+                    if(cep.length()==9){
+                        cep = cep.replace("-","");
+                    }
 
-                if(!dao.containsPrimaryKey(cep))
-                {
-                    dao.save(local);
+                    List<Address> localDatabase = dao.getAddress(cep);
 
-                    Intent goToTheAddress = new Intent(MainActivity.this, AddressActivity.class);
-                    goToTheAddress.putExtra("address", local);
-                    startActivity(goToTheAddress);
+                    if (!localDatabase.isEmpty()) {
+
+                        Address local = localDatabase.get(0);
+
+                        Intent goToTheAddress = new Intent(MainActivity.this, AddressActivity.class);
+                        goToTheAddress.putExtra("address", local);
+                        startActivity(goToTheAddress);
+                    } else {
+
+                        String url = "https://viacep.com.br/ws/" + cep + "/json/";
+
+                        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                                new Response.Listener<String>() {
+                                    @Override
+                                    public void onResponse(String response) {
+                                        String cepReceived = "";
+                                        String logradouroReceived = "";
+                                        String bairroReceived = "";
+                                        String localidadeReceived = "";
+                                        String ufReceived = "";
+
+                                        JSONObject obj = null;
+                                        try {
+                                            obj = new JSONObject(response);
+                                            cepReceived = obj.getString("cep").replace("-","");
+                                            logradouroReceived = obj.getString("logradouro");
+                                            bairroReceived = obj.getString("bairro");
+                                            localidadeReceived = obj.getString("localidade");
+                                            ufReceived = obj.getString("uf");
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                        Address local = new Address(cepReceived, logradouroReceived, bairroReceived, localidadeReceived, ufReceived);
+                                        dao.save(local);
+
+                                        Intent goToTheAddress = new Intent(MainActivity.this, AddressActivity.class);
+                                        goToTheAddress.putExtra("address", local);
+                                        startActivity(goToTheAddress);
+                                    }
+                                },
+                                new Response.ErrorListener() {
+                                    @Override
+                                    public void onErrorResponse(VolleyError error) {
+                                        Toast.makeText(MainActivity.this, "CEP invalido", Toast.LENGTH_LONG).show();
+                                    }
+                                }
+                        );
+                        queue.add(stringRequest);
+                    }
                 }
                 else{
-                    Toast.makeText(MainActivity.this, "CEP já utilizado", Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "CEP invalido", Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -88,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
-        menu.add("Remoover");
+        menu.add("Remover");
     }
 
     @Override

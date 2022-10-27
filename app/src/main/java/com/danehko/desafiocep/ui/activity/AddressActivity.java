@@ -51,7 +51,7 @@ public class AddressActivity extends AppCompatActivity {
     }
 
     private void setViewsAddress(Address addres, TextView campoCep, TextView campoLogradouro, TextView campoBairro, TextView campoCidade, TextView campoEstado) {
-        campoCep.setText(String.format("CEP: %s", addres.getCep()));
+        campoCep.setText(String.format("CEP: %s", addres.getCep().substring(0,5) + "-" + addres.getCep().substring(5)));
         campoLogradouro.setText(String.format("Logradouro: %s", addres.getLogradouro()));
         campoBairro.setText(String.format("Bairro: %s", addres.getBairro()));
         campoCidade.setText(String.format("Cidade: %s", addres.getCidade()));

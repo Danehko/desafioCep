@@ -11,6 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/cep"
+        android:digits="01234567889-"
         android:ems="20"
         android:inputType="textPostalAddress"
         android:importantForAutofill="no"

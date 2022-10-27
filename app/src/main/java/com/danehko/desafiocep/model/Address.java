@@ -1,9 +1,16 @@
 package com.danehko.desafiocep.model;
 
 
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
-public class Address{
+import java.io.Serializable;
 
+@Entity
+public class Address implements Serializable {
+
+    @PrimaryKey @NonNull
     private String cep;
     private String logradouro;
     private String bairro;

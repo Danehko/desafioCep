@@ -8,8 +8,14 @@ public class AddressDAO {
 
     private final static List<Address> adresses = new ArrayList<>();
 
-    public void save(Address address) {
+    public boolean save(Address address) {
+        for (Address example : adresses) {
+            if(address.getCep().equals(example.getCep())){
+                return false;
+            }
+        }
         adresses.add(address);
+        return true;
     }
 
     public List<Address> all() {
@@ -20,4 +26,7 @@ public class AddressDAO {
         return adresses.get(i);
     }
 
+    public void remove(Address address) {
+        adresses.remove(address);
+    }
 }

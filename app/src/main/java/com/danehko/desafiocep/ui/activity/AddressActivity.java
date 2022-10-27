@@ -1,5 +1,6 @@
 package com.danehko.desafiocep.ui.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -8,7 +9,6 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.danehko.desafiocep.R;
-import com.danehko.desafiocep.dao.AddressDAO;
 import com.danehko.desafiocep.model.Address;
 
 public class AddressActivity extends AppCompatActivity {
@@ -24,15 +24,15 @@ public class AddressActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_address);
 
-        setTitle("Local");
-
-        AddressDAO dao = new AddressDAO();
-        Address addres = dao.addrees(0);
+        setTitle("Endereço");
 
         startupTextViews();
         Button botaoVoltar = findViewById(R.id.activity_address_bt_voltar);
 
-        setViewsAddress(addres, campoCep, campoLogradouro, campoBairro, campoCidade, campoEstado);
+        Intent data = getIntent();
+        Address address = (Address) data.getSerializableExtra("address");
+
+        setViewsAddress(address, campoCep, campoLogradouro, campoBairro, campoCidade, campoEstado);
 
         botaoVoltar.setOnClickListener(new View.OnClickListener() {
             @Override

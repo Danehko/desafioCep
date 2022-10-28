@@ -36,21 +36,56 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private ArrayAdapter<Address> adapter;
+    private RoomAddressDAO dao;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        RequestQueue queue = Volley.newRequestQueue(this);
-
-        AddressDatabase database = Room.databaseBuilder(this, AddressDatabase.class, "desafioCep.db").allowMainThreadQueries().build();
-        RoomAddressDAO dao = database.getRoomAlunoDAO();
         setTitle("Checagem de CEP");
-        //Buscando Cep
+        RequestQueue queue = Volley.newRequestQueue(this);
+        dao = recoveringDao();
         EditText campoCep = findViewById(R.id.activity_main_text_cep);
-
         Button botaoPesquisar = findViewById(R.id.activity_main_bt_search);
+        searchAction(queue, campoCep, botaoPesquisar);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        dao = recoveringDao();
+        ListView adressesListElement = findViewById(R.id.activity_main_list_address);
+        List<Address> adressesList = dao.all();
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, adressesList);
+        adressesListElement.setAdapter(adapter);
+        adressesListElement.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                                    @Override
+                                                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                                        Address address = adressesList.get(position);
+                                                        createAndStartActivity(address);
+                                                    }
+                                                }
+        );
+        registerForContextMenu(adressesListElement);
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        menu.add("Remover");
+    }
+
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
+        dao = recoveringDao();
+        AdapterView.AdapterContextMenuInfo menuinfo = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        Address chosenAddress = adapter.getItem(menuinfo.position);
+        dao.remove(chosenAddress);
+        adapter.remove(chosenAddress);
+        return super.onContextItemSelected(item);
+    }
+
+    private void searchAction(RequestQueue queue, EditText campoCep, Button botaoPesquisar) {
         botaoPesquisar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -59,48 +94,19 @@ public class MainActivity extends AppCompatActivity {
                     if(cep.length()==9){
                         cep = cep.replace("-","");
                     }
-
                     List<Address> localDatabase = dao.getAddress(cep);
 
                     if (!localDatabase.isEmpty()) {
-
                         Address local = localDatabase.get(0);
-
-                        Intent goToTheAddress = new Intent(MainActivity.this, AddressActivity.class);
-                        goToTheAddress.putExtra("address", local);
-                        startActivity(goToTheAddress);
-                    } else {
-
+                        createAndStartActivity(local);
+                    }
+                    else {
                         String url = "https://viacep.com.br/ws/" + cep + "/json/";
-
                         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                                 new Response.Listener<String>() {
                                     @Override
                                     public void onResponse(String response) {
-                                        String cepReceived = "";
-                                        String logradouroReceived = "";
-                                        String bairroReceived = "";
-                                        String localidadeReceived = "";
-                                        String ufReceived = "";
-
-                                        JSONObject obj = null;
-                                        try {
-                                            obj = new JSONObject(response);
-                                            cepReceived = obj.getString("cep").replace("-","");
-                                            logradouroReceived = obj.getString("logradouro");
-                                            bairroReceived = obj.getString("bairro");
-                                            localidadeReceived = obj.getString("localidade");
-                                            ufReceived = obj.getString("uf");
-                                        } catch (JSONException e) {
-                                            e.printStackTrace();
-                                        }
-
-                                        Address local = new Address(cepReceived, logradouroReceived, bairroReceived, localidadeReceived, ufReceived);
-                                        dao.save(local);
-
-                                        Intent goToTheAddress = new Intent(MainActivity.this, AddressActivity.class);
-                                        goToTheAddress.putExtra("address", local);
-                                        startActivity(goToTheAddress);
+                                        handleResponse(response);
                                     }
                                 },
                                 new Response.ErrorListener() {
@@ -120,46 +126,40 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        AddressDatabase database = Room.databaseBuilder(this, AddressDatabase.class, "desafioCep.db").allowMainThreadQueries().build();
-        RoomAddressDAO dao = database.getRoomAlunoDAO();
+    private void handleResponse(String response) {
+        String cepReceived = "";
+        String logradouroReceived = "";
+        String bairroReceived = "";
+        String localidadeReceived = "";
+        String ufReceived = "";
+        JSONObject obj = null;
 
-        ListView listAddress = findViewById(R.id.activity_main_list_address);
-        List<Address> adresses = dao.all();
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, adresses);
-        listAddress.setAdapter(adapter);
-        listAddress.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                                               @Override
-                                               public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                                                   Address address = adresses.get(position);
+        try {
+            obj = new JSONObject(response);
+            cepReceived = obj.getString("cep").replace("-","");
+            logradouroReceived = obj.getString("logradouro");
+            bairroReceived = obj.getString("bairro");
+            localidadeReceived = obj.getString("localidade");
+            ufReceived = obj.getString("uf");
 
-                                                   Intent goToTheAddress = new Intent(MainActivity.this, AddressActivity.class);
-                                                   goToTheAddress.putExtra("address", address);
-                                                   startActivity(goToTheAddress);
-                                               }
-                                           }
-        );
-        registerForContextMenu(listAddress);
+            Address local = new Address(cepReceived, logradouroReceived, bairroReceived, localidadeReceived, ufReceived);
+            dao.save(local);
+
+            createAndStartActivity(local);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
-    @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-        super.onCreateContextMenu(menu, v, menuInfo);
-        menu.add("Remover");
+    private RoomAddressDAO recoveringDao() {
+        AddressDatabase database = Room.databaseBuilder(this, AddressDatabase.class, "desafioCep.db").allowMainThreadQueries().build();
+        return database.getRoomAlunoDAO();
     }
 
-    @Override
-    public boolean onContextItemSelected(@NonNull MenuItem item) {
-        AddressDatabase database = Room.databaseBuilder(this, AddressDatabase.class, "desafioCep.db").allowMainThreadQueries().build();
-        RoomAddressDAO dao = database.getRoomAlunoDAO();
-
-        AdapterView.AdapterContextMenuInfo menuinfo = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-        Address chosenAddress = adapter.getItem(menuinfo.position);
-        dao.remove(chosenAddress);
-        adapter.remove(chosenAddress);
-        return super.onContextItemSelected(item);
-
+    private void createAndStartActivity(Address address) {
+        Intent goToTheAddress = new Intent(MainActivity.this, AddressActivity.class);
+        goToTheAddress.putExtra("address", address);
+        startActivity(goToTheAddress);
     }
 }

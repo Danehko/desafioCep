@@ -23,17 +23,13 @@ public class AddressActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_address);
-
         setTitle("Endereço");
-
         startupTextViews();
-        Button botaoVoltar = findViewById(R.id.activity_address_bt_voltar);
-
         Intent data = getIntent();
-        Address address = (Address) data.getSerializableExtra("address");
+        Address enderecoCarregado = (Address) data.getSerializableExtra("address");
+        setViewsAddress(enderecoCarregado, campoCep, campoLogradouro, campoBairro, campoCidade, campoEstado);
 
-        setViewsAddress(address, campoCep, campoLogradouro, campoBairro, campoCidade, campoEstado);
-
+        Button botaoVoltar = findViewById(R.id.activity_address_bt_voltar);
         botaoVoltar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
